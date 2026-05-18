@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arbre généalogique</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/js/storage.js" defer></script>
+  <script src="assets/js/tree-view.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">AG</span>
+      <div>
+        <h1>Arbre généalogique</h1>
+        <p id="saveStatus">Prêt</p>
+      </div>
+    </div>
+
+    <label class="tree-title">
+      <span>Nom de l’arbre</span>
+      <input id="treeTitle" type="text" autocomplete="off" maxlength="80" placeholder="Famille">
+    </label>
+
+    <nav class="top-actions" aria-label="Actions principales">
+      <button id="newTreeBtn" class="button ghost" type="button">Nouveau</button>
+      <button id="saveTreeBtn" class="button secondary" type="button">Enregistrer</button>
+      <button id="importTreeBtn" class="button secondary" type="button">Importer</button>
+      <button id="exportTreeBtn" class="button primary" type="button">Exporter SVG</button>
+      <input id="importFile" type="file" accept="application/json,.json" hidden>
+    </nav>
+  </header>
+
+  <main id="appShell" class="app-shell">
+    <aside id="membersPanel" class="side-panel members-panel" aria-label="Membres de la famille">
+      <button id="membersPanelToggle" class="panel-collapse-button" type="button" aria-expanded="true" aria-controls="membersPanelContent" title="Replier la liste" aria-label="Replier la liste">‹</button>
+      <div id="membersPanelContent" class="panel-content">
+      <div class="panel-header">
+        <div>
+          <h2>Membres</h2>
+          <p id="memberCount">0 personne</p>
+        </div>
+        <button id="addMemberBtn" class="button primary compact" type="button">Ajouter</button>
+      </div>
+
+      <label class="search-field">
+        <span>Recherche</span>
+        <input id="memberSearch" type="search" autocomplete="off" placeholder="Nom, lieu, métier">
+      </label>
+
+      <div id="memberList" class="member-list" aria-live="polite"></div>
+      </div>
+    </aside>
+
+    <section class="workspace" aria-label="Arbre familial">
+      <div class="workspace-toolbar">
+        <div class="stats" aria-live="polite">
+          <span id="statPeople">0 membres</span>
+          <span id="statLinks">0 liens</span>
+        </div>
+        <div class="diagram-tools" aria-label="Édition du schéma">
+          <button id="manualLayoutToggle" class="button secondary compact" type="button" aria-pressed="false">Agencement manuel</button>
+          <label class="diagram-tool-select">
+            <!-- <span>Trait à poser</span> -->
+            <select id="diagramRelationType">
+              <option value="select">Sélection</option>
+              <option value="parent">Parent biologique</option>
+              <option value="adoptive-parent">Parent adoptif</option>
+              <option value="partner">Couple</option>
+              <option value="former-partner">Ex-conjoint</option>
+              <option value="sibling">Frère / sœur</option>
+              <option value="half-sibling">Demi-fratrie</option>
+              <option value="custom">Lien personnalisé</option>
+              <option value="remove">Retirer le lien</option>
+            </select>
+          </label>
+          <button id="resetLayoutBtn" class="button ghost compact" type="button">Réinitialiser</button>
+          <span id="diagramLinkHint" class="diagram-link-hint" aria-live="polite"></span>
+        </div>
+        <div class="view-controls" aria-label="Contrôles de vue">
+          <button id="showAllTreeBtn" class="button ghost compact" type="button" hidden>Tout afficher</button>
+          <button id="zoomOutBtn" class="icon-button" type="button" title="Réduire" aria-label="Réduire">−</button>
+          <button id="zoomInBtn" class="icon-button" type="button" title="Agrandir" aria-label="Agrandir">+</button>
+          <button id="fitTreeBtn" class="icon-button wide" type="button" title="Recentrer" aria-label="Recentrer">⌖</button>
+        </div>
+      </div>
+
+      <div id="treeViewport" class="tree-viewport">
+        <div id="treeSurface" class="tree-surface">
+          <svg id="treeConnectors" class="tree-connectors" aria-hidden="true"></svg>
+          <div id="treeNodes" class="tree-nodes"></div>
+        </div>
+      </div>
+      <p class="system-version" aria-label="Version du systeme">Arbre v1.2.0</p>
+    </section>
+
+    <aside id="editorPanel" class="side-panel editor-panel" aria-label="Fiche et liens">
+      <button id="editorPanelToggle" class="panel-collapse-button" type="button" aria-expanded="true" aria-controls="editorPanelContent" title="Replier la fiche" aria-label="Replier la fiche">›</button>
+      <div id="editorPanelContent" class="panel-content">
+      <div class="panel-header">
+        <div>
+          <h2 id="editorPanelTitle">Fiche</h2>
+          <p id="editorMode">Nouveau membre</p>
+        </div>
+        <button id="clearSelectionBtn" class="button ghost compact" type="button">Vider</button>
+      </div>
+
+      <div class="editor-tabs" role="tablist" aria-label="Vue d'édition">
+        <button id="personTabBtn" class="editor-tab active" type="button" role="tab" aria-selected="true" aria-controls="personForm">Fiche</button>
+        <button id="relationsTabBtn" class="editor-tab" type="button" role="tab" aria-selected="false" aria-controls="relationsPanel">Liens</button>
+      </div>
+
+      <form id="personForm" class="person-form" role="tabpanel" aria-labelledby="personTabBtn">
+        <input id="personId" type="hidden">
+
+        <div class="photo-editor">
+          <div id="photoPreview" class="photo-preview" aria-hidden="true"></div>
+          <div class="photo-actions">
+            <label class="button secondary file-button">
+              Photo
+              <input id="photoInput" type="file" accept="image/*" hidden>
+            </label>
+            <button id="removePhotoBtn" class="button ghost" type="button">Retirer</button>
+          </div>
+        </div>
+
+        <div class="form-grid two">
+          <label>
+            <span>Prénom</span>
+            <input id="firstName" name="firstName" type="text" autocomplete="given-name" maxlength="70">
+          </label>
+          <label>
+            <span>Nom</span>
+            <input id="lastName" name="lastName" type="text" autocomplete="family-name" maxlength="70">
+          </label>
+        </div>
+
+        <label>
+          <span>Sexe</span>
+          <select id="gender" name="gender">
+            <option value="">Non renseigné</option>
+            <option value="male">Homme</option>
+            <option value="female">Femme</option>
+          </select>
+        </label>
+
+        <div class="form-grid two">
+          <label>
+            <span>Naissance</span>
+            <input id="birthDate" name="birthDate" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="AAAA, AAAA-MM ou AAAA-MM-JJ">
+          </label>
+          <label>
+            <span>Décès</span>
+            <input id="deathDate" name="deathDate" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="AAAA, AAAA-MM ou AAAA-MM-JJ">
+          </label>
+        </div>
+
+        <label>
+          <span>Lieu de naissance</span>
+          <input id="birthPlace" name="birthPlace" type="text" autocomplete="off" maxlength="120">
+        </label>
+
+        <label>
+          <span>Lieu de vie</span>
+          <input id="currentPlace" name="currentPlace" type="text" autocomplete="off" maxlength="120">
+        </label>
+
+        <label>
+          <span>Métier ou activité</span>
+          <input id="occupation" name="occupation" type="text" autocomplete="organization-title" maxlength="120">
+        </label>
+
+        <label>
+          <span>Notes</span>
+          <textarea id="notes" name="notes" rows="4" maxlength="900"></textarea>
+        </label>
+
+        <div class="form-actions">
+          <button class="button primary" type="submit">Enregistrer la fiche</button>
+          <button id="deleteMemberBtn" class="button danger" type="button">Supprimer</button>
+        </div>
+      </form>
+
+      <section id="relationsPanel" class="relations-panel" role="tabpanel" aria-labelledby="relationsTabBtn" aria-label="Liens familiaux" hidden>
+        <div class="section-heading">
+          <h2>Liens</h2>
+          <p>Parenté, fratrie et couples</p>
+        </div>
+
+        <div class="relation-editor">
+          <label>
+            <span>Personne A</span>
+            <span class="person-combobox">
+              <input id="relationPersonA" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="relationPersonAResults" placeholder="Commencer à écrire un nom">
+              <span id="relationPersonAResults" class="person-suggestions" role="listbox"></span>
+            </span>
+          </label>
+          <label>
+            <span>Personne B</span>
+            <span class="person-combobox">
+              <input id="relationPersonB" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="relationPersonBResults" placeholder="Commencer à écrire un nom">
+              <span id="relationPersonBResults" class="person-suggestions" role="listbox"></span>
+            </span>
+          </label>
+          <div class="relation-actions">
+            <button id="addParentLinkBtn" class="button secondary" type="button">A est parent de B</button>
+            <button id="addAdoptiveParentLinkBtn" class="button secondary" type="button">A est parent adoptif de B</button>
+            <button id="addPartnerLinkBtn" class="button secondary" type="button">A et B sont en couple</button>
+            <button id="addFormerPartnerLinkBtn" class="button secondary" type="button">A et B sont ex-conjoints</button>
+            <button id="addSiblingLinkBtn" class="button secondary" type="button">Frère / sœur</button>
+            <button id="addHalfSiblingLinkBtn" class="button secondary" type="button">Demi-frère / demi-sœur</button>
+            <button id="removeLinkBtn" class="button ghost" type="button">Supprimer le lien</button>
+          </div>
+          <label>
+            <span>Lien personnalisé</span>
+            <input id="customRelationLabel" type="text" autocomplete="off" maxlength="70" placeholder="Cousin, marraine, tuteur">
+          </label>
+          <label>
+            <span>Niveau du lien</span>
+            <select id="customRelationDirection">
+              <option value="same">Même niveau</option>
+              <option value="up">B est au-dessus de A</option>
+              <option value="down">B est en dessous de A</option>
+            </select>
+          </label>
+          <button id="addCustomLinkBtn" class="button secondary" type="button">Ajouter le lien personnalisé</button>
+          <div id="relationSummary" class="relation-summary" aria-live="polite"></div>
+        </div>
+      </section>
+      </div>
+    </aside>
+  </main>
+</body>
+</html>
