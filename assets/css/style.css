@@ -16,8 +16,8 @@
   --danger: #b42318;
   --shadow: 0 18px 42px rgba(31, 41, 51, 0.08);
   --radius: 8px;
-  --node-width: 240px;
-  --node-height: 100px;
+  --node-width: 150px;
+  --node-height: 190px;
   font-family: Inter, "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
@@ -667,22 +667,22 @@ select:focus {
 
 .tree-node {
   position: absolute;
-  display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  grid-template-rows: auto auto auto;
-  align-content: start;
-  gap: 5px 9px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   width: var(--node-width);
-  min-height: var(--node-height);
-  padding: 10px 28px 10px 10px;
+  height: var(--node-height);
+  padding: 12px 10px 10px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
   background: #fff;
   color: var(--ink);
   box-shadow: var(--shadow);
-  text-align: left;
+  text-align: center;
   user-select: none;
   cursor: pointer;
+  overflow: hidden;
 }
 
 .tree-node:hover,
@@ -732,12 +732,12 @@ select:focus {
 }
 
 .node-avatar {
-  grid-row: 1 / span 3;
+  flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 8px;
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
   overflow: hidden;
   background: linear-gradient(135deg, #0f766e, #b7791f);
   color: #fff;
@@ -746,14 +746,23 @@ select:focus {
 }
 
 .node-name {
-  align-self: end;
-  font-size: 14px;
+  display: -webkit-box;
+  width: 100%;
+  min-height: 31px;
+  margin-top: 4px;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .node-branch-button {
   position: absolute;
   top: -13px;
-  right: 32px;
+  right: 28px;
   z-index: 3;
   min-width: 24px;
   height: 24px;
@@ -805,20 +814,24 @@ select:focus {
   color: #d6336c;
 }
 
+.node-meta,
 .node-place {
-  grid-column: 2;
+  width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .node-tags {
-  grid-column: 1 / -1;
   display: flex;
+  justify-content: center;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 4px;
+  width: 100%;
   min-height: 0;
+  max-height: 44px;
   margin-top: 2px;
+  overflow: hidden;
 }
 
 .node-tag {
@@ -826,11 +839,11 @@ select:focus {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 3px 7px;
+  padding: 3px 6px;
   border-radius: 8px;
   background: var(--surface-alt);
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
 }
 

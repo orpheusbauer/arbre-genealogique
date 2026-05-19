@@ -1526,26 +1526,30 @@
 
         const x = Number.parseFloat(node.style.left) || 0;
         const y = Number.parseFloat(node.style.top) || 0;
-        const nameLines = wrapSvgText(getDisplayName(person), 28, 2);
+        const textMaxLength = Math.max(10, Math.floor((nodeWidth - 22) / 7));
+        const nameLines = wrapSvgText(getDisplayName(person), textMaxLength, 2);
         const meta = formatLifeDates(person);
         const place = person.birthPlace || person.currentPlace || "";
         const avatarText = getInitials(person);
         const genderSymbol = renderExportGenderSymbol(person, nodeWidth);
-        const avatar = renderExportAvatar(person);
-        const tagsY = place ? 91 : (nameLines.length > 1 ? 76 : 60);
-        const tags = renderExportTags(person, tagsY);
+        const avatar = renderExportAvatar(person, nodeWidth);
+        const nameStartY = 86;
+        const metaY = nameStartY + nameLines.length * 15 + 7;
+        const placeY = metaY + 15;
+        const tagsY = place ? placeY + 13 : metaY + 14;
+        const tags = renderExportTags(person, tagsY, nodeWidth);
 
         return [
           `<g class="export-node" transform="translate(${formatSvgNumber(x)} ${formatSvgNumber(y)})">`,
           `<rect class="export-card" width="${nodeWidth}" height="${nodeHeight}" rx="8" />`,
           avatar || [
-            "<circle class=\"export-avatar\" cx=\"36\" cy=\"37\" r=\"25\" />",
-            `<text class="export-avatar-text" x="36" y="42">${escapeXml(avatarText)}</text>`
+            `<circle class="export-avatar" cx="${formatSvgNumber(nodeWidth / 2)}" cy="40" r="28" />`,
+            `<text class="export-avatar-text" x="${formatSvgNumber(nodeWidth / 2)}" y="46">${escapeXml(avatarText)}</text>`
           ].join(""),
           genderSymbol,
-          nameLines.map((line, index) => `<text class="export-name" x="74" y="${28 + index * 17}">${escapeXml(line)}</text>`).join(""),
-          `<text class="export-meta" x="74" y="${nameLines.length > 1 ? 68 : 52}">${escapeXml(meta)}</text>`,
-          place ? `<text class="export-place" x="74" y="${nameLines.length > 1 ? 86 : 70}">${escapeXml(truncateText(place, 32))}</text>` : "",
+          nameLines.map((line, index) => `<text class="export-name" x="${formatSvgNumber(nodeWidth / 2)}" y="${nameStartY + index * 15}">${escapeXml(line)}</text>`).join(""),
+          `<text class="export-meta" x="${formatSvgNumber(nodeWidth / 2)}" y="${metaY}">${escapeXml(truncateText(meta, textMaxLength + 4))}</text>`,
+          place ? `<text class="export-place" x="${formatSvgNumber(nodeWidth / 2)}" y="${placeY}">${escapeXml(truncateText(place, textMaxLength + 2))}</text>` : "",
           tags,
           "</g>"
         ].join("");
@@ -1557,7 +1561,7 @@
       `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="${viewX} ${viewY} ${width} ${height}" role="img" aria-label="${escapeAttribute(state.tree.metadata.title || "Arbre genealogique")}">`,
       "<defs>",
       "<style>",
-      ".export-bg{fill:#f7f9fb}.connector{fill:none;stroke:#8aa2a0;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.family-trunk,.family-branch{stroke-width:3}.partner-line{fill:none;stroke:#a33a4a;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.former-partner-line{fill:none;stroke:#7048a8;stroke-width:2.75;stroke-dasharray:10 7;stroke-linecap:round;stroke-linejoin:round}.adoption-line{stroke:#2563eb;stroke-dasharray:8 7}.sibling-line{fill:none;stroke:#b7791f;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.half-sibling-line{fill:none;stroke:#b7791f;stroke-width:2.5;stroke-dasharray:7 6;stroke-linecap:round;stroke-linejoin:round}.custom-line{fill:none;stroke:#52616b;stroke-width:2.25;stroke-dasharray:2 7;stroke-linecap:round;stroke-linejoin:round}.custom-line-up,.custom-line-down{stroke:#3f6f6a;stroke-dasharray:5 6}.export-card{fill:#fff;stroke:#b8c2cc;stroke-width:1.2;filter:drop-shadow(0 8px 12px rgba(31,41,51,.12))}.export-avatar{fill:#0f766e}.export-avatar-text{font:800 14px Arial,sans-serif;fill:#fff;text-anchor:middle}.export-name{font:800 14px Arial,sans-serif;fill:#1f2933}.export-meta,.export-place{font:12px Arial,sans-serif;fill:#667085}.export-gender{font:900 18px Arial,sans-serif;text-anchor:middle}.export-gender-male{fill:#2563eb}.export-gender-female{fill:#d6336c}.export-tag{fill:#eef3f2}.export-tag-text{font:800 11px Arial,sans-serif;fill:#667085}",
+      ".export-bg{fill:#f7f9fb}.connector{fill:none;stroke:#8aa2a0;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.family-trunk,.family-branch{stroke-width:3}.partner-line{fill:none;stroke:#a33a4a;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.former-partner-line{fill:none;stroke:#7048a8;stroke-width:2.75;stroke-dasharray:10 7;stroke-linecap:round;stroke-linejoin:round}.adoption-line{stroke:#2563eb;stroke-dasharray:8 7}.sibling-line{fill:none;stroke:#b7791f;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.half-sibling-line{fill:none;stroke:#b7791f;stroke-width:2.5;stroke-dasharray:7 6;stroke-linecap:round;stroke-linejoin:round}.custom-line{fill:none;stroke:#52616b;stroke-width:2.25;stroke-dasharray:2 7;stroke-linecap:round;stroke-linejoin:round}.custom-line-up,.custom-line-down{stroke:#3f6f6a;stroke-dasharray:5 6}.export-card{fill:#fff;stroke:#b8c2cc;stroke-width:1.2;filter:drop-shadow(0 8px 12px rgba(31,41,51,.12))}.export-avatar{fill:#0f766e}.export-avatar-text{font:800 15px Arial,sans-serif;fill:#fff;text-anchor:middle}.export-name{font:800 13px Arial,sans-serif;fill:#1f2933;text-anchor:middle}.export-meta,.export-place{font:11px Arial,sans-serif;fill:#667085;text-anchor:middle}.export-gender{font:900 17px Arial,sans-serif;text-anchor:middle}.export-gender-male{fill:#2563eb}.export-gender-female{fill:#d6336c}.export-tag{fill:#eef3f2}.export-tag-text{font:800 9.5px Arial,sans-serif;fill:#667085;text-anchor:middle}",
       "</style>",
       "</defs>",
       `<rect class="export-bg" x="${viewX}" y="${viewY}" width="${width}" height="${height}" />`,
@@ -1567,16 +1571,17 @@
     ].join("");
   }
 
-  function renderExportAvatar(person) {
+  function renderExportAvatar(person, nodeWidth) {
     if (!person.photo) {
       return "";
     }
 
     const clipId = `avatar-${safeSvgId(person.id)}`;
+    const centerX = nodeWidth / 2;
     return [
-      `<defs><clipPath id="${clipId}"><circle cx="36" cy="37" r="25" /></clipPath></defs>`,
-      "<circle class=\"export-avatar\" cx=\"36\" cy=\"37\" r=\"25\" />",
-      `<image href="${escapeAttribute(person.photo)}" xlink:href="${escapeAttribute(person.photo)}" x="11" y="12" width="50" height="50" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})" />`
+      `<defs><clipPath id="${clipId}"><circle cx="${formatSvgNumber(centerX)}" cy="40" r="28" /></clipPath></defs>`,
+      `<circle class="export-avatar" cx="${formatSvgNumber(centerX)}" cy="40" r="28" />`,
+      `<image href="${escapeAttribute(person.photo)}" xlink:href="${escapeAttribute(person.photo)}" x="${formatSvgNumber(centerX - 28)}" y="12" width="56" height="56" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})" />`
     ].join("");
   }
 
@@ -1591,7 +1596,7 @@
     return "";
   }
 
-  function renderExportTags(person, y) {
+  function renderExportTags(person, y, nodeWidth) {
     const tags = [];
 
     if (person.occupation) {
@@ -1601,21 +1606,17 @@
       tags.push(person.currentPlace);
     }
 
-    let x = 74;
-    const maxRight = TreeView.constants.NODE_WIDTH - 12;
+    let currentY = y;
+    const maxWidth = Math.max(44, nodeWidth - 24);
     return tags.slice(0, 2).map((tag) => {
-      const remaining = maxRight - x;
-      if (remaining < 44) {
-        return "";
-      }
-
-      const width = Math.min(remaining, Math.max(44, Math.round(tag.length * 6.2) + 16));
-      const text = truncateText(tag, Math.max(5, Math.floor((width - 16) / 6.2)));
+      const width = Math.min(maxWidth, Math.max(44, Math.round(tag.length * 5.8) + 14));
+      const x = (nodeWidth - width) / 2;
+      const text = truncateText(tag, Math.max(5, Math.floor((width - 14) / 5.8)));
       const markup = [
-        `<rect class="export-tag" x="${x}" y="${y}" width="${width}" height="20" rx="8" />`,
-        `<text class="export-tag-text" x="${x + 8}" y="${y + 14}">${escapeXml(text)}</text>`
+        `<rect class="export-tag" x="${formatSvgNumber(x)}" y="${currentY}" width="${width}" height="16" rx="8" />`,
+        `<text class="export-tag-text" x="${formatSvgNumber(nodeWidth / 2)}" y="${currentY + 11}">${escapeXml(text)}</text>`
       ].join("");
-      x += width + 6;
+      currentY += 17;
       return markup;
     }).join("");
   }
