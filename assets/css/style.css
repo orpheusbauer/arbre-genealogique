@@ -16,8 +16,8 @@
   --danger: #b42318;
   --shadow: 0 18px 42px rgba(31, 41, 51, 0.08);
   --radius: 8px;
-  --node-width: 270px;
-  --node-height: 116px;
+  --node-width: 240px;
+  --node-height: 100px;
   font-family: Inter, "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
