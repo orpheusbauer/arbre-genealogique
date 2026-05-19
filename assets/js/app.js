@@ -477,11 +477,13 @@
     const birthDate = readPartialDate(el.birthDate, "date de naissance");
     const deathDate = readPartialDate(el.deathDate, "date de décès");
 
+    const isNewPerson = !person;
+
     if (birthDate === null || deathDate === null) {
       return;
     }
 
-    if (!person) {
+    if (isNewPerson) {
       person = {
         id: personId,
         parentIds: [],
@@ -491,6 +493,7 @@
         siblingIds: [],
         halfSiblingIds: [],
         customRelations: [],
+        layout: getViewportCenteredNodeLayout(),
         createdAt: now
       };
       state.tree.people.push(person);
@@ -1423,6 +1426,21 @@
       manual: true,
       x: Math.round(x),
       y: Math.round(y)
+    };
+  }
+
+  function getViewportCenteredNodeLayout() {
+    const viewportRect = el.treeViewport.getBoundingClientRect();
+    const scale = Number.isFinite(state.view.scale) && state.view.scale > 0 ? state.view.scale : 1;
+    const nodeWidth = Number.isFinite(TreeView.constants.NODE_WIDTH) ? TreeView.constants.NODE_WIDTH : 240;
+    const nodeHeight = Number.isFinite(TreeView.constants.NODE_HEIGHT) ? TreeView.constants.NODE_HEIGHT : 100;
+    const centerX = (viewportRect.width / 2 - state.view.x) / scale;
+    const centerY = (viewportRect.height / 2 - state.view.y) / scale;
+
+    return {
+      manual: true,
+      x: Math.round(centerX - nodeWidth / 2),
+      y: Math.round(centerY - nodeHeight / 2)
     };
   }
 

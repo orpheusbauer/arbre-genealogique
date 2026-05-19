@@ -1,20 +1,26 @@
 (function () {
   "use strict";
 
-  const NODE_WIDTH = 270;
-  const NODE_HEIGHT = 116;
+  const DEFAULT_NODE_WIDTH = 270;
+  const DEFAULT_NODE_HEIGHT = 116;
   const GAP_X = 72;
   const GAP_Y = 122;
   const PADDING = 64;
   const BLOCK_GAP = 136;
   const PARTNER_GAP = 18;
   const FORMER_PARTNER_GAP = 46;
+  let currentNodeMetrics = {
+    width: DEFAULT_NODE_WIDTH,
+    height: DEFAULT_NODE_HEIGHT
+  };
 
   function render(options) {
     const hiddenIds = new Set(options.hiddenIds || []);
     const people = (options.tree.people || []).filter((person) => !hiddenIds.has(person.id));
     const nodesEl = options.nodesEl;
     const svgEl = options.svgEl;
+    const nodeMetrics = readNodeMetrics(nodesEl);
+    currentNodeMetrics = nodeMetrics;
 
     nodesEl.innerHTML = "";
     svgEl.innerHTML = "";
@@ -33,7 +39,7 @@
       return { width: 600, height: 420, minX: 0, minY: 0 };
     }
 
-    const layout = createLayout(people);
+    const layout = createLayout(people, nodeMetrics);
 
     options.surfaceEl.style.width = `${layout.width}px`;
     options.surfaceEl.style.height = `${layout.height}px`;
@@ -76,7 +82,7 @@
     return { width: layout.width, height: layout.height, minX: layout.minX, minY: layout.minY };
   }
 
-  function createLayout(people) {
+  function createLayout(people, nodeMetrics) {
     const generations = computeGenerations(people);
     const byId = new Map(people.map((person) => [person.id, person]));
     const rows = Array.from(generations.entries()).sort((a, b) => a[0] - b[0]);
@@ -85,8 +91,8 @@
     let maxX = -Infinity;
 
     rows.forEach((entry, rowIndex) => {
-      const blocks = buildLayoutBlocks(entry[1], byId, positions);
-      const y = PADDING + rowIndex * (NODE_HEIGHT + GAP_Y);
+      const blocks = buildLayoutBlocks(entry[1], byId, positions, nodeMetrics);
+      const y = PADDING + rowIndex * (nodeMetrics.height + GAP_Y);
       let cursor = blocks.some((block) => Number.isFinite(block.targetX)) ? -Infinity : 0;
 
       blocks.forEach((block) => {
@@ -98,11 +104,11 @@
           positions.set(item.person.id, {
             x,
             y,
-            width: NODE_WIDTH,
-            height: NODE_HEIGHT
+            width: nodeMetrics.width,
+            height: nodeMetrics.height
           });
           minX = Math.min(minX, x);
-          maxX = Math.max(maxX, x + NODE_WIDTH);
+          maxX = Math.max(maxX, x + nodeMetrics.width);
         });
 
         cursor = blockX + block.width + BLOCK_GAP;
@@ -114,18 +120,18 @@
       position.x += offsetX;
     });
 
-    applyManualPositions(people, positions);
+    applyManualPositions(people, positions, nodeMetrics);
 
     const bounds = measurePositions(positions);
     const contentMinX = bounds.minX - PADDING;
     const contentMinY = bounds.minY - PADDING;
     const width = Math.max(620, bounds.maxX - bounds.minX + PADDING * 2);
-    const autoHeight = PADDING * 2 + rows.length * NODE_HEIGHT + Math.max(0, rows.length - 1) * GAP_Y;
+    const autoHeight = PADDING * 2 + rows.length * nodeMetrics.height + Math.max(0, rows.length - 1) * GAP_Y;
     const height = Math.max(autoHeight, bounds.maxY - bounds.minY + PADDING * 2, 420);
     return { positions, width, height, minX: contentMinX, minY: contentMinY };
   }
 
-  function applyManualPositions(people, positions) {
+  function applyManualPositions(people, positions, nodeMetrics) {
     people.forEach((person) => {
       if (!person.layout || person.layout.manual !== true) {
         return;
@@ -140,8 +146,8 @@
       positions.set(person.id, {
         x,
         y,
-        width: NODE_WIDTH,
-        height: NODE_HEIGHT
+        width: nodeMetrics.width,
+        height: nodeMetrics.height
       });
     });
   }
@@ -166,7 +172,7 @@
     return { minX, minY, maxX, maxY };
   }
 
-  function buildLayoutBlocks(rowPeople, byId, positions) {
+  function buildLayoutBlocks(rowPeople, byId, positions, nodeMetrics) {
     const rowIds = new Set(rowPeople.map((person) => person.id));
     const families = createFamilyUnion(rowPeople.map((person) => person.id));
     const parentGroups = new Map();
@@ -211,11 +217,11 @@
     });
 
     return Array.from(grouped.values())
-      .map((members) => createLayoutBlock(members, byId, positions))
+      .map((members) => createLayoutBlock(members, byId, positions, nodeMetrics))
       .sort(compareBlocks);
   }
 
-  function createLayoutBlock(members, byId, positions) {
+  function createLayoutBlock(members, byId, positions, nodeMetrics) {
     const ordered = orderBlockMembers(members, byId, positions);
     const items = [];
     let x = 0;
@@ -225,7 +231,7 @@
 
       const nextPerson = ordered[index + 1];
       if (nextPerson) {
-        x += NODE_WIDTH + relationGap(person, nextPerson);
+        x += nodeMetrics.width + relationGap(person, nextPerson);
       }
     });
 
@@ -237,7 +243,7 @@
       items,
       sortName: ordered.map(getDisplayName).join(" "),
       targetX: parentCenters.length ? average(parentCenters) : Number.NaN,
-      width: items.length ? items[items.length - 1].x + NODE_WIDTH : NODE_WIDTH
+      width: items.length ? items[items.length - 1].x + nodeMetrics.width : nodeMetrics.width
     };
   }
 
@@ -523,10 +529,14 @@
           return;
         }
 
+        const pathData = makePairPath(first, second, 24 + (pairs.size % 4) * 9);
+        if (!pathData) {
+          return;
+        }
+
         const line = createSvg("path");
         line.setAttribute("class", className);
-        line.setAttribute("d", makePairPath(first, second, 24 + (pairs.size % 4) * 9));
-
+        line.setAttribute("d", pathData);
         svgEl.appendChild(line);
       });
     });
@@ -681,9 +691,14 @@
           return;
         }
 
+        const pathData = makePairPath(first, second, 28 + (pairs.size % 4) * 9);
+        if (!pathData) {
+          return;
+        }
+
         const line = createSvg("path");
         line.setAttribute("class", className);
-        line.setAttribute("d", makePairPath(first, second, 28 + (pairs.size % 4) * 9));
+        line.setAttribute("d", pathData);
         svgEl.appendChild(line);
       });
     });
@@ -712,9 +727,14 @@
           return;
         }
 
+        const pathData = makeCustomPath(first, second, direction, 32 + (pairs.size % 4) * 9);
+        if (!pathData) {
+          return;
+        }
+
         const line = createSvg("path");
         line.setAttribute("class", `custom-line custom-line-${direction}`);
-        line.setAttribute("d", makeCustomPath(first, second, direction, 32 + (pairs.size % 4) * 9));
+        line.setAttribute("d", pathData);
         svgEl.appendChild(line);
       });
     });
@@ -761,13 +781,7 @@
         return makeHorizontalConnectorPath(startX, y, endX, y);
       }
 
-      return makeSameLevelRoutedPath(
-        left.x + left.width / 2,
-        left.y + left.height,
-        right.x + right.width / 2,
-        right.y + right.height,
-        offset
-      );
+      return "";
     }
 
     const upper = first.y <= second.y ? first : second;
@@ -784,16 +798,6 @@
   function makeHorizontalConnectorPath(startX, startY, endX, endY) {
     return makeRoundedConnectorPath([
       { x: startX, y: startY },
-      { x: endX, y: endY }
-    ]);
-  }
-
-  function makeSameLevelRoutedPath(startX, startY, endX, endY, offset) {
-    const laneY = Math.max(startY, endY) + offset;
-    return makeRoundedConnectorPath([
-      { x: startX, y: startY },
-      { x: startX, y: laneY },
-      { x: endX, y: laneY },
       { x: endX, y: endY }
     ]);
   }
@@ -1116,6 +1120,41 @@
     return document.createElementNS("http://www.w3.org/2000/svg", tagName);
   }
 
+  function readNodeMetrics(referenceEl) {
+    if (!referenceEl || typeof window === "undefined" || typeof window.getComputedStyle !== "function") {
+      return {
+        width: DEFAULT_NODE_WIDTH,
+        height: DEFAULT_NODE_HEIGHT
+      };
+    }
+
+    const styles = window.getComputedStyle(referenceEl);
+    const metrics = {
+      width: readCssPixels(styles.getPropertyValue("--node-width"), DEFAULT_NODE_WIDTH),
+      height: readCssPixels(styles.getPropertyValue("--node-height"), DEFAULT_NODE_HEIGHT)
+    };
+
+    const probe = document.createElement("article");
+    probe.className = "tree-node";
+    probe.style.visibility = "hidden";
+    probe.style.pointerEvents = "none";
+    referenceEl.appendChild(probe);
+
+    const measuredWidth = probe.offsetWidth;
+    const measuredHeight = probe.offsetHeight;
+    probe.remove();
+
+    return {
+      width: measuredWidth || metrics.width,
+      height: measuredHeight || metrics.height
+    };
+  }
+
+  function readCssPixels(value, fallback) {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  }
+
   function escapeHtml(value) {
     return String(value || "")
       .replace(/&/g, "&amp;")
@@ -1132,8 +1171,12 @@
   window.TreeView = {
     render,
     constants: {
-      NODE_WIDTH,
-      NODE_HEIGHT
+      get NODE_WIDTH() {
+        return currentNodeMetrics.width;
+      },
+      get NODE_HEIGHT() {
+        return currentNodeMetrics.height;
+      }
     }
   };
 }());
