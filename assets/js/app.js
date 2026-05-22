@@ -191,7 +191,7 @@
       }
     });
 
-    window.addEventListener("resize", debounce(fitTree, 160));
+    window.addEventListener("resize", debounce(handleViewportResize, 160));
     window.addEventListener("beforeunload", () => {
       if (state.dirty) {
         saveNow();
@@ -1751,17 +1751,25 @@
     el.saveStatus.textContent = message || "Prêt";
   }
 
+  function handleViewportResize() {
+    renderTree();
+    fitTree();
+  }
+
   function fitTree() {
     const viewportRect = el.treeViewport.getBoundingClientRect();
     const width = state.treeBounds.width || 600;
     const height = state.treeBounds.height || 420;
     const minX = Number.isFinite(state.treeBounds.minX) ? state.treeBounds.minX : 0;
     const minY = Number.isFinite(state.treeBounds.minY) ? state.treeBounds.minY : 0;
-    const scale = clamp(Math.min((viewportRect.width - 48) / width, (viewportRect.height - 48) / height, 1), 0.35, 1);
+    const compactViewport = viewportRect.width < 520;
+    const viewportPadding = compactViewport ? 28 : 48;
+    const minFitScale = compactViewport ? 0.24 : 0.35;
+    const scale = clamp(Math.min((viewportRect.width - viewportPadding) / width, (viewportRect.height - viewportPadding) / height, 1), minFitScale, 1);
 
     state.view.scale = scale;
-    state.view.x = Math.max(24, (viewportRect.width - width * scale) / 2) - minX * scale;
-    state.view.y = Math.max(24, (viewportRect.height - height * scale) / 2) - minY * scale;
+    state.view.x = Math.max(viewportPadding / 2, (viewportRect.width - width * scale) / 2) - minX * scale;
+    state.view.y = Math.max(viewportPadding / 2, (viewportRect.height - height * scale) / 2) - minY * scale;
     applyViewTransform();
   }
 
